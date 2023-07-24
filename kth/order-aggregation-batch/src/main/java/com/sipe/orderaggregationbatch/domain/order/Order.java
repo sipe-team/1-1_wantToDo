@@ -1,9 +1,11 @@
 package com.sipe.orderaggregationbatch.domain.order;
 
 import java.math.BigDecimal;
-import lombok.Getter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
+@Data
+@NoArgsConstructor
 public class Order {
 
   private Long orderId;

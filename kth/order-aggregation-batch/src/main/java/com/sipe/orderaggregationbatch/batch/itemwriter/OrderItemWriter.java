@@ -1,9 +1,7 @@
 package com.sipe.orderaggregationbatch.batch.itemwriter;
 
-import com.sipe.orderaggregationbatch.domain.order.Order;
 import java.math.BigDecimal;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
@@ -20,7 +18,7 @@ public class OrderItemWriter implements ItemWriter<Map<Long, BigDecimal>> {
                                                                        .stream())
                           .map(e -> "Customer ID: " + e.getKey() + ", Total Order Amount: "
                               + e.getValue())
-                          .collect(Collectors.joining());
+                          .collect(Collectors.joining("\n"));
     System.out.println(result);
   }
 }

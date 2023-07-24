@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class OrderItemReader implements ItemReader<Order> {
-  private static final String SELECT_ORDERS_SQL = "SELECT orderId, customerId, orderAmount FROM order";
+  private static final String SELECT_ORDER_SQL = "SELECT orderId, customerId, orderAmount FROM `order`";
 
   @Autowired
   private JdbcTemplate jdbcTemplate;
@@ -21,7 +21,7 @@ public class OrderItemReader implements ItemReader<Order> {
 
   @Override
   public Order read() {
-    List<Order> orders = jdbcTemplate.query(SELECT_ORDERS_SQL, new BeanPropertyRowMapper<>(Order.class));
+    List<Order> orders = jdbcTemplate.query(SELECT_ORDER_SQL, new BeanPropertyRowMapper<>(Order.class));
     return currentRow < orders.size() ? orders.get(currentRow++) : null;
   }
 }
