@@ -15,21 +15,21 @@ import org.springframework.transaction.PlatformTransactionManager;
 public class BatchConfig extends DefaultBatchConfiguration {
 
   @Bean
-  public Job job(JobRepository jobRepository,
-                 Step processFileAndWriteToDbStep,
+  public Job processOnlineRetailOrderFileJob(JobRepository jobRepository,
+                 Step writeToDbStep,
                  Step writeToCsvStep) {
-    return new JobBuilder("", jobRepository)
-        .start(processFileAndWriteToDbStep)
+    return new JobBuilder("processOnlineRetailOrderFileJob", jobRepository)
+        .start(writeToDbStep)
         .next(writeToCsvStep)
         .build();
   }
 
   @Bean
   @JobScope
-  private Step processFileAndWriteToDbStep(
+  private Step writeToDbStep(
       JobRepository jobRepository, PlatformTransactionManager transactionManager
   ) {
-    return new StepBuilder("", jobRepository)
+    return new StepBuilder("writeToDbStep", jobRepository)
         .tasklet((contribution, chunkContext) -> null, transactionManager)
         .build();
   }
@@ -39,7 +39,7 @@ public class BatchConfig extends DefaultBatchConfiguration {
   private Step writeToCsvStep(
       JobRepository jobRepository, PlatformTransactionManager transactionManager
   ) {
-    return new StepBuilder("", jobRepository)
+    return new StepBuilder("writeToCsvStep", jobRepository)
         .tasklet((contribution, chunkContext) -> null, transactionManager)
         .build();
   }
