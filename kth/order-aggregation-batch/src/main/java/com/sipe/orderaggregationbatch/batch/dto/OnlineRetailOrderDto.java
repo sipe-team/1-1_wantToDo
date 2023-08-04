@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 
 @Getter
-public class OnlineRetailDto {
+public class OnlineRetailOrderDto {
 
   private String invoiceNo;
 
@@ -22,7 +22,7 @@ public class OnlineRetailDto {
 
   private String country;
 
-  public OnlineRetailDto(
+  public OnlineRetailOrderDto(
       String invoiceNo, String stockCode, String description, Integer quantity,
       LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country
   ) {
