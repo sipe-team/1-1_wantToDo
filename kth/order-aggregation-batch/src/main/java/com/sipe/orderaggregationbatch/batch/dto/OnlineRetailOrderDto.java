@@ -2,8 +2,10 @@ package com.sipe.orderaggregationbatch.batch.dto;
 
 import java.time.LocalDateTime;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@NoArgsConstructor
 public class OnlineRetailOrderDto {
 
   private String invoiceNo;
