@@ -2,15 +2,18 @@ package com.sipe.orderaggregationbatch.batch.config;
 
 import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderDto;
 import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrder;
+import com.sipe.orderaggregationbatch.batch.rowmapper.OnlineRetailOrderRowMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobScope;
-import org.springframework.batch.core.configuration.support.DefaultBatchConfiguration;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.extensions.excel.RowMapper;
+import org.springframework.batch.extensions.excel.poi.PoiItemReader;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
@@ -42,11 +45,12 @@ public class BatchConfig {
   @Bean
   @JobScope
   public Step writeToDbStep(
-      JobRepository jobRepository, PlatformTransactionManager transactionManager
+      JobRepository jobRepository, PlatformTransactionManager transactionManager,
+      PoiItemReader<OnlineRetailOrderDto> onlineRetailOrderExcelReaderV2
   ) {
     return new StepBuilder("writeToDbStep", jobRepository)
         .<OnlineRetailOrderDto, OnlineRetailOrder>chunk(10, transactionManager)
-        .reader(onlineRetailOrderExcelReader())
+        .reader(onlineRetailOrderExcelReaderV2)
         .processor(onlineRetailOrderProcessor())
         .writer(onlineRetailOrderDbWriter())
         .build();
@@ -63,6 +67,24 @@ public class BatchConfig {
           setTargetType(OnlineRetailOrderDto.class);
         }})
         .build();
+  }
+
+  @Bean
+  @StepScope
+  public PoiItemReader<? extends OnlineRetailOrderDto> onlineRetailOrderExcelReaderV2(
+      RowMapper<OnlineRetailOrderDto> onlineRetailOrderRowMapper
+  ) {
+    PoiItemReader<OnlineRetailOrderDto> reader = new PoiItemReader<>();
+    reader.setName("onlineRetailOrderExcelReader");
+    reader.setLinesToSkip(1);
+    reader.setResource(new ClassPathResource("Online_Retail.xlsx"));
+    reader.setRowMapper(onlineRetailOrderRowMapper);
+    return reader;
+  }
+
+  @Bean
+  public RowMapper<OnlineRetailOrderDto> onlineRetailOrderRowMapper() {
+    return new OnlineRetailOrderRowMapper();
   }
 
   private ItemProcessor<? super OnlineRetailOrderDto, ? extends OnlineRetailOrder> onlineRetailOrderProcessor() {
