@@ -45,12 +45,10 @@ public class BatchConfig {
   @Bean
   @JobScope
   public Step writeToDbStep(
-      JobRepository jobRepository, PlatformTransactionManager transactionManager,
-      PoiItemReader<OnlineRetailOrderDto> onlineRetailOrderExcelReaderV2
-  ) {
+      JobRepository jobRepository, PlatformTransactionManager transactionManager) {
     return new StepBuilder("writeToDbStep", jobRepository)
         .<OnlineRetailOrderDto, OnlineRetailOrder>chunk(10, transactionManager)
-        .reader(onlineRetailOrderExcelReaderV2)
+        .reader(onlineRetailOrderExcelReaderV2())
         .processor(onlineRetailOrderProcessor())
         .writer(onlineRetailOrderDbWriter())
         .build();
@@ -71,14 +69,12 @@ public class BatchConfig {
 
   @Bean
   @StepScope
-  public PoiItemReader<? extends OnlineRetailOrderDto> onlineRetailOrderExcelReaderV2(
-      RowMapper<OnlineRetailOrderDto> onlineRetailOrderRowMapper
-  ) {
+  public PoiItemReader<? extends OnlineRetailOrderDto> onlineRetailOrderExcelReaderV2() {
     PoiItemReader<OnlineRetailOrderDto> reader = new PoiItemReader<>();
     reader.setName("onlineRetailOrderExcelReader");
     reader.setLinesToSkip(1);
     reader.setResource(new ClassPathResource("Online_Retail.xlsx"));
-    reader.setRowMapper(onlineRetailOrderRowMapper);
+    reader.setRowMapper(onlineRetailOrderRowMapper());
     return reader;
   }
 
