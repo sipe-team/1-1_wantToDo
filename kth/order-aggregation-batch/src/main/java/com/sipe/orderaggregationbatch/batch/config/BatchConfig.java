@@ -3,6 +3,8 @@ package com.sipe.orderaggregationbatch.batch.config;
 import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderDto;
 import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrder;
 import com.sipe.orderaggregationbatch.batch.rowmapper.OnlineRetailOrderRowMapper;
+import jakarta.persistence.EntityManagerFactory;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.util.Strings;
 import org.springframework.batch.core.Job;
@@ -15,10 +17,9 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.extensions.excel.RowMapper;
 import org.springframework.batch.extensions.excel.poi.PoiItemReader;
-import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.context.annotation.Bean;
@@ -28,7 +29,10 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
 @Slf4j
+@RequiredArgsConstructor
 public class BatchConfig {
+
+  private final EntityManagerFactory entityManagerFactory;
 
   @Bean
   public Job processOnlineRetailOrderFileJob(
@@ -109,13 +113,16 @@ public class BatchConfig {
         order.getUnitPrice() == null;
   }
 
-  private ItemWriter<? super OnlineRetailOrder> onlineRetailOrderDbWriter() {
-    return new ItemWriter<OnlineRetailOrder>() {
-      @Override
-      public void write(Chunk<? extends OnlineRetailOrder> chunk) throws Exception {
-        log.info(chunk.toString());
-      }
-    }; // TODO: 구현 예정
+  private JpaItemWriter<? super OnlineRetailOrder> onlineRetailOrderDbWriter() {
+    JpaItemWriter<OnlineRetailOrder> jpaItemWriter = new JpaItemWriter<>();
+    jpaItemWriter.setEntityManagerFactory(entityManagerFactory);
+    return jpaItemWriter;
+//    return new ItemWriter<OnlineRetailOrder>() {
+//      @Override
+//      public void write(Chunk<? extends OnlineRetailOrder> chunk) throws Exception {
+//        log.info(chunk.toString());
+//      }
+//    }; // TODO: 구현 예정
   }
 
   @Bean
