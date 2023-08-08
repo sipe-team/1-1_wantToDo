@@ -4,6 +4,7 @@ import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderDto;
 import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrder;
 import com.sipe.orderaggregationbatch.batch.rowmapper.OnlineRetailOrderRowMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.util.Strings;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobScope;
@@ -45,7 +46,8 @@ public class BatchConfig {
   @Bean
   @JobScope
   public Step writeToDbStep(
-      JobRepository jobRepository, PlatformTransactionManager transactionManager) {
+      JobRepository jobRepository, PlatformTransactionManager transactionManager
+  ) {
     return new StepBuilder("writeToDbStep", jobRepository)
         .<OnlineRetailOrderDto, OnlineRetailOrder>chunk(10, transactionManager)
         .reader(onlineRetailOrderExcelReaderV2())
@@ -87,20 +89,31 @@ public class BatchConfig {
     return new ItemProcessor<OnlineRetailOrderDto, OnlineRetailOrder>() {
       @Override
       public OnlineRetailOrder process(OnlineRetailOrderDto item) throws Exception {
-        log.info("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n", item.getInvoiceNo(),
-                 item.getStockCode(), item.getDescription(), item.getQuantity(),
-                 item.getInvoiceDate(), item.getUnitPrice(), item.getCustomerId(),
-                 item.getCountry());
-        return null;
+        if (isRequiredFieldNull(item)) {
+          log.info("Skipped item: {}", item);
+          return null;
+        }
+        return new OnlineRetailOrder(item.getInvoiceNo(),
+                                     item.getStockCode(), item.getDescription(), item.getQuantity(),
+                                     item.getInvoiceDate(), item.getUnitPrice(),
+                                     item.getCustomerId(),
+                                     item.getCountry());
       }
     };
+  }
+
+  private boolean isRequiredFieldNull(OnlineRetailOrderDto order) {
+    return Strings.isNullOrEmpty(order.getInvoiceNo()) ||
+        Strings.isNullOrEmpty(order.getStockCode()) ||
+        order.getQuantity() == null ||
+        order.getUnitPrice() == null;
   }
 
   private ItemWriter<? super OnlineRetailOrder> onlineRetailOrderDbWriter() {
     return new ItemWriter<OnlineRetailOrder>() {
       @Override
       public void write(Chunk<? extends OnlineRetailOrder> chunk) throws Exception {
-
+        log.info(chunk.toString());
       }
     }; // TODO: 구현 예정
   }

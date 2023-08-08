@@ -10,17 +10,17 @@ import lombok.Setter;
 @NoArgsConstructor
 public class OnlineRetailOrderDto {
 
-  private String invoiceNo;
+  private String invoiceNo; // non-null
 
-  private String stockCode;
+  private String stockCode; // non-null
 
   private String description;
 
-  private Integer quantity;
+  private Integer quantity; // non-null
 
   private LocalDateTime invoiceDate;
 
-  private Float unitPrice;
+  private Float unitPrice; // non-null
 
   private Long customerId;
 
@@ -38,5 +38,19 @@ public class OnlineRetailOrderDto {
     this.unitPrice = unitPrice;
     this.customerId = customerId;
     this.country = country;
+  }
+
+  @Override
+  public String toString() {
+    return "OnlineRetailOrderDto{" +
+        "invoiceNo='" + invoiceNo + '\'' +
+        ", stockCode='" + stockCode + '\'' +
+        ", description='" + description + '\'' +
+        ", quantity=" + quantity +
+        ", invoiceDate=" + invoiceDate +
+        ", unitPrice=" + unitPrice +
+        ", customerId=" + customerId +
+        ", country='" + country + '\'' +
+        '}';
   }
 }
