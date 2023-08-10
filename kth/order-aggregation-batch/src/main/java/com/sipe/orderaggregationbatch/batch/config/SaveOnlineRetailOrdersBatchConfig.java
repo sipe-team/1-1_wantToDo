@@ -18,10 +18,8 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.extensions.excel.RowMapper;
 import org.springframework.batch.extensions.excel.poi.PoiItemReader;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.database.JpaItemWriter;
-import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
-import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
@@ -30,56 +28,54 @@ import org.springframework.transaction.PlatformTransactionManager;
 @Configuration
 @Slf4j
 @RequiredArgsConstructor
-public class BatchConfig {
+public class SaveOnlineRetailOrdersBatchConfig {
 
   private final EntityManagerFactory entityManagerFactory;
+  private final JobRepository jobRepository;
+  private final PlatformTransactionManager transactionManager;
 
   @Bean
-  public Job processOnlineRetailOrderFileJob(
-      JobRepository jobRepository,
-      Step writeToDbStep,
-      Step writeToCsvStep
-  ) {
-    return new JobBuilder("processOnlineRetailOrderFileJob", jobRepository)
+  public Job processOnlineRetailOrderFileJob() {
+    return new JobBuilder("saveOnlineRetailOrdersJob", jobRepository)
         .incrementer(new RunIdIncrementer())
-        .start(writeToDbStep)
-        .next(writeToCsvStep)
+        .start(writeToDbStep())
+        .next(writeToCsvStep())
         .build();
   }
 
   @Bean
   @JobScope
-  public Step writeToDbStep(
-      JobRepository jobRepository, PlatformTransactionManager transactionManager
-  ) {
+  public Step writeToDbStep() {
     return new StepBuilder("writeToDbStep", jobRepository)
         .<OnlineRetailOrderDto, OnlineRetailOrder>chunk(10, transactionManager)
-        .reader(onlineRetailOrderExcelReaderV2())
+        .reader(onlineRetailOrderExcelReaderV2(null))
         .processor(onlineRetailOrderProcessor())
         .writer(onlineRetailOrderDbWriter())
         .build();
   }
 
-  private ItemReader<? extends OnlineRetailOrderDto> onlineRetailOrderExcelReader() {
-    return new FlatFileItemReaderBuilder<OnlineRetailOrderDto>()
-        .name("onlineRetailOrderExcelReader")
-        .resource(new ClassPathResource("Online_Retail.xlsx"))
-        .delimited()
-        .names(new String[]{"InvoiceNo", "StockCode", "Description", "Quantity", "InvoiceDate",
-                            "UnitPrice", "CustomerID", "Country"})
-        .fieldSetMapper(new BeanWrapperFieldSetMapper<>() {{
-          setTargetType(OnlineRetailOrderDto.class);
-        }})
-        .build();
-  }
+//  private ItemReader<? extends OnlineRetailOrderDto> onlineRetailOrderExcelReader() {
+//    return new FlatFileItemReaderBuilder<OnlineRetailOrderDto>()
+//        .name("onlineRetailOrderExcelReader")
+//        .resource(new ClassPathResource("Online_Retail_20230810.xlsx"))
+//        .delimited()
+//        .names(new String[]{"InvoiceNo", "StockCode", "Description", "Quantity", "InvoiceDate",
+//                            "UnitPrice", "CustomerID", "Country"})
+//        .fieldSetMapper(new BeanWrapperFieldSetMapper<>() {{
+//          setTargetType(OnlineRetailOrderDto.class);
+//        }})
+//        .build();
+//  }
 
   @Bean
   @StepScope
-  public PoiItemReader<? extends OnlineRetailOrderDto> onlineRetailOrderExcelReaderV2() {
+  public PoiItemReader<? extends OnlineRetailOrderDto> onlineRetailOrderExcelReaderV2(
+      @Value("#{jobParameters[requestDate]}") String requestDate
+  ) {
     PoiItemReader<OnlineRetailOrderDto> reader = new PoiItemReader<>();
     reader.setName("onlineRetailOrderExcelReader");
     reader.setLinesToSkip(1);
-    reader.setResource(new ClassPathResource("Online_Retail.xlsx"));
+    reader.setResource(new ClassPathResource("Online_Retail_" + requestDate + ".xlsx"));
     reader.setRowMapper(onlineRetailOrderRowMapper());
     return reader;
   }
@@ -117,19 +113,11 @@ public class BatchConfig {
     JpaItemWriter<OnlineRetailOrder> jpaItemWriter = new JpaItemWriter<>();
     jpaItemWriter.setEntityManagerFactory(entityManagerFactory);
     return jpaItemWriter;
-//    return new ItemWriter<OnlineRetailOrder>() {
-//      @Override
-//      public void write(Chunk<? extends OnlineRetailOrder> chunk) throws Exception {
-//        log.info(chunk.toString());
-//      }
-//    }; // TODO: 구현 예정
   }
 
   @Bean
   @JobScope
-  public Step writeToCsvStep(
-      JobRepository jobRepository, PlatformTransactionManager transactionManager
-  ) {
+  public Step writeToCsvStep() {
     return new StepBuilder("writeToCsvStep", jobRepository)
         .tasklet((contribution, chunkContext) -> null, transactionManager)
         .build();
