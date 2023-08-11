@@ -2,7 +2,6 @@ package com.sipe.orderaggregationbatch.batch.config;
 
 import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderDto;
 import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrder;
-import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrderRepository;
 import com.sipe.orderaggregationbatch.batch.rowmapper.OnlineRetailOrderRowMapper;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +33,6 @@ public class SaveOnlineRetailOrdersBatchConfig {
   private final EntityManagerFactory entityManagerFactory;
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
-  private final OnlineRetailOrderRepository onlineRetailOrderRepository;
 
   @Bean
   public Job processOnlineRetailOrderFileJob() {
@@ -55,20 +53,7 @@ public class SaveOnlineRetailOrdersBatchConfig {
         .writer(onlineRetailOrderDbWriter())
         .build();
   }
-
-//  private ItemReader<? extends OnlineRetailOrderDto> onlineRetailOrderExcelReader() {
-//    return new FlatFileItemReaderBuilder<OnlineRetailOrderDto>()
-//        .name("onlineRetailOrderExcelReader")
-//        .resource(new ClassPathResource("online_retail_20230810.xlsx"))
-//        .delimited()
-//        .names(new String[]{"InvoiceNo", "StockCode", "Description", "Quantity", "InvoiceDate",
-//                            "UnitPrice", "CustomerID", "Country"})
-//        .fieldSetMapper(new BeanWrapperFieldSetMapper<>() {{
-//          setTargetType(OnlineRetailOrderDto.class);
-//        }})
-//        .build();
-//  }
-
+  
   @Bean
   @StepScope
   public PoiItemReader<? extends OnlineRetailOrderDto> onlineRetailOrderExcelReaderV2(

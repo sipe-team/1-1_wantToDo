@@ -1,4 +1,4 @@
-package com.sipe.orderaggregationbatch.batch.config;
+package com.sipe.orderaggregationbatch;
 
 import static java.time.format.DateTimeFormatter.ofPattern;
 
