@@ -2,8 +2,11 @@ package com.sipe.orderaggregationbatch.batch.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,6 +17,9 @@ import lombok.NoArgsConstructor;
 public class OnlineRetailOrder {
 
   @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
+
   @Column(name = "invoice_no")
   private String invoiceNo;
 
@@ -38,7 +44,7 @@ public class OnlineRetailOrder {
   @Column(name = "country")
   private String country;
 
-  public OnlineRetailOrder(
+  private OnlineRetailOrder(
       String invoiceNo, String stockCode, String description, Integer quantity,
       LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country
   ) {
@@ -50,5 +56,18 @@ public class OnlineRetailOrder {
     this.unitPrice = unitPrice;
     this.customerId = customerId;
     this.country = country;
+  }
+
+  public static final OnlineRetailOrder create(String invoiceNo, String stockCode, String description, Integer quantity,
+                                               LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country)
+  {
+    return new OnlineRetailOrder(invoiceNo,
+                                 stockCode,
+                                 description,
+                                 quantity,
+                                 invoiceDate,
+                                 unitPrice,
+                                 customerId,
+                                 country);
   }
 }

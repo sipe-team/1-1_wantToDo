@@ -2,6 +2,7 @@ package com.sipe.orderaggregationbatch.batch.config;
 
 import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderDto;
 import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrder;
+import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrderRepository;
 import com.sipe.orderaggregationbatch.batch.rowmapper.OnlineRetailOrderRowMapper;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class SaveOnlineRetailOrdersBatchConfig {
   private final EntityManagerFactory entityManagerFactory;
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
+  private final OnlineRetailOrderRepository onlineRetailOrderRepository;
 
   @Bean
   public Job processOnlineRetailOrderFileJob() {
@@ -57,7 +59,7 @@ public class SaveOnlineRetailOrdersBatchConfig {
 //  private ItemReader<? extends OnlineRetailOrderDto> onlineRetailOrderExcelReader() {
 //    return new FlatFileItemReaderBuilder<OnlineRetailOrderDto>()
 //        .name("onlineRetailOrderExcelReader")
-//        .resource(new ClassPathResource("Online_Retail_20230810.xlsx"))
+//        .resource(new ClassPathResource("online_retail_20230810.xlsx"))
 //        .delimited()
 //        .names(new String[]{"InvoiceNo", "StockCode", "Description", "Quantity", "InvoiceDate",
 //                            "UnitPrice", "CustomerID", "Country"})
@@ -75,7 +77,7 @@ public class SaveOnlineRetailOrdersBatchConfig {
     PoiItemReader<OnlineRetailOrderDto> reader = new PoiItemReader<>();
     reader.setName("onlineRetailOrderExcelReader");
     reader.setLinesToSkip(1);
-    reader.setResource(new ClassPathResource("Online_Retail_" + requestDate + ".xlsx"));
+    reader.setResource(new ClassPathResource("online_retail_" + requestDate + ".xlsx"));
     reader.setRowMapper(onlineRetailOrderRowMapper());
     return reader;
   }
@@ -93,11 +95,14 @@ public class SaveOnlineRetailOrdersBatchConfig {
           log.info("Skipped item: {}", item);
           return null;
         }
-        return new OnlineRetailOrder(item.getInvoiceNo(),
-                                     item.getStockCode(), item.getDescription(), item.getQuantity(),
-                                     item.getInvoiceDate(), item.getUnitPrice(),
-                                     item.getCustomerId(),
-                                     item.getCountry());
+        return OnlineRetailOrder.create(item.getInvoiceNo(),
+                                        item.getStockCode(),
+                                        item.getDescription(),
+                                        item.getQuantity(),
+                                        item.getInvoiceDate(),
+                                        item.getUnitPrice(),
+                                        item.getCustomerId(),
+                                        item.getCountry());
       }
     };
   }
