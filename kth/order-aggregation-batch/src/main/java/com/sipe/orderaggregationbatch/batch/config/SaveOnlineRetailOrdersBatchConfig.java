@@ -3,10 +3,14 @@ package com.sipe.orderaggregationbatch.batch.config;
 import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderDto;
 import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrder;
 import com.sipe.orderaggregationbatch.batch.rowmapper.OnlineRetailOrderRowMapper;
+import com.sipe.orderaggregationbatch.batch.step.ItemFailureLoggerListener;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.util.Strings;
+import org.springframework.batch.core.ItemProcessListener;
+import org.springframework.batch.core.ItemReadListener;
+import org.springframework.batch.core.ItemWriteListener;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobScope;
@@ -33,6 +37,7 @@ public class SaveOnlineRetailOrdersBatchConfig {
   private final EntityManagerFactory entityManagerFactory;
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
+  private final ItemFailureLoggerListener itemFailureLoggerListener;
 
   @Bean
   public Job processOnlineRetailOrderFileJob() {
@@ -49,8 +54,11 @@ public class SaveOnlineRetailOrdersBatchConfig {
     return new StepBuilder("writeToDbStep", jobRepository)
         .<OnlineRetailOrderDto, OnlineRetailOrder>chunk(10, transactionManager)
         .reader(onlineRetailOrderExcelReaderV2(null))
+        .listener((ItemReadListener<? super OnlineRetailOrderDto>) itemFailureLoggerListener)
         .processor(onlineRetailOrderProcessor())
+        .listener((ItemProcessListener<? super OnlineRetailOrderDto, ? super OnlineRetailOrder>) itemFailureLoggerListener)
         .writer(onlineRetailOrderDbWriter())
+        .listener((ItemWriteListener<? super OnlineRetailOrder>) itemFailureLoggerListener)
         .build();
   }
   
