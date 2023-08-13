@@ -3,8 +3,27 @@ spring:
     jdbc:
       initialize-schema: always
   datasource:
+    url: jdbc:mysql://localhost:3306/sipe?rewriteBatchedStatements=true
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.jdbc.Driver
     hikari:
-      jdbc-url: jdbc:mysql://localhost:3306/sipe
-      username: root
-      password: 1234
-      driver-class-name: com.mysql.jdbc.Driver
+      jdbc-url: ${spring.datasource.url}
+      username: ${spring.datasource.username}
+      password: ${spring.datasource.password}
+      driver-class-name: ${spring.datasource.driver-class-name}
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 100
+        order_inserts: true
+        order_updates: true
+        highlight_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+#        show-sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql: trace
