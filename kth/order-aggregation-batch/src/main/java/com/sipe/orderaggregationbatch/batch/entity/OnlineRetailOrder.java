@@ -42,6 +42,9 @@ public class OnlineRetailOrder {
   @Column(name = "country")
   private String country;
 
+  @Column(name = "recorded_date")
+  private String recordedDate;
+
   @PrePersist
   public void createId() {
     this.id = UUID.randomUUID();
@@ -49,7 +52,8 @@ public class OnlineRetailOrder {
 
   private OnlineRetailOrder(
       String invoiceNo, String stockCode, String description, Integer quantity,
-      LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country
+      LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country,
+      String recordedDate
   ) {
     this.invoiceNo = invoiceNo;
     this.stockCode = stockCode;
@@ -59,11 +63,13 @@ public class OnlineRetailOrder {
     this.unitPrice = unitPrice;
     this.customerId = customerId;
     this.country = country;
+    this.recordedDate = recordedDate;
   }
 
   private OnlineRetailOrder(
       UUID id, String invoiceNo, String stockCode, String description, Integer quantity,
-      LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country
+      LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country,
+      String recordedDate
   ) {
     this.id = id;
     this.invoiceNo = invoiceNo;
@@ -74,11 +80,14 @@ public class OnlineRetailOrder {
     this.unitPrice = unitPrice;
     this.customerId = customerId;
     this.country = country;
+    this.recordedDate = recordedDate;
   }
 
-  public static final OnlineRetailOrder create(String invoiceNo, String stockCode, String description, Integer quantity,
-                                               LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country)
-  {
+  public static final OnlineRetailOrder create(
+      String invoiceNo, String stockCode, String description, Integer quantity,
+      LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country,
+      String recordedDate
+  ) {
     return new OnlineRetailOrder(invoiceNo,
                                  stockCode,
                                  description,
@@ -86,6 +95,7 @@ public class OnlineRetailOrder {
                                  invoiceDate,
                                  unitPrice,
                                  customerId,
-                                 country);
+                                 country,
+                                 recordedDate);
   }
 }

@@ -16,43 +16,13 @@ public class ItemFailureLoggerListener extends ItemListenerSupport<OnlineRetailO
     StepExecutionListener {
 
   @Override
-  public void beforeProcess(OnlineRetailOrderDto item) {
-    log.info("Start Processing..");
-  }
-
-  @Override
-  public void afterProcess(OnlineRetailOrderDto item, OnlineRetailOrder result) {
-    log.info("End Processing..");
-  }
-
-  @Override
   public void onProcessError(OnlineRetailOrderDto item, Exception e) {
     log.error("Encountered error on read: {}", item, e);
   }
 
   @Override
-  public void beforeRead() {
-    log.info("Start Reading..");
-  }
-
-  @Override
-  public void afterRead(OnlineRetailOrderDto item) {
-    log.info("End Reading..");
-  }
-
-  @Override
   public void onReadError(Exception e) {
     log.error("Encountered error on read", e);  }
-
-  @Override
-  public void beforeWrite(Chunk<? extends OnlineRetailOrder> items) {
-    log.info("Start Writing..");
-  }
-
-  @Override
-  public void afterWrite(Chunk<? extends OnlineRetailOrder> items) {
-    log.info("End Writing: { size={} }", items.size());
-  }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @Override

@@ -59,7 +59,7 @@ public class SaveOnlineRetailOrdersBatchConfig {
         .<OnlineRetailOrderDto, OnlineRetailOrder>chunk(100, transactionManager)
         .reader(onlineRetailOrderExcelReader(null))
         .listener((ItemReadListener<? super OnlineRetailOrderDto>) itemFailureLoggerListener)
-        .processor(onlineRetailOrderProcessor())
+        .processor(onlineRetailOrderProcessor(null))
         .listener((ItemProcessListener<? super OnlineRetailOrderDto, ? super OnlineRetailOrder>) itemFailureLoggerListener)
         .writer(onlineRetailOrderDbWriter())
         .listener((ItemWriteListener<? super OnlineRetailOrder>) itemFailureLoggerListener)
@@ -84,7 +84,11 @@ public class SaveOnlineRetailOrdersBatchConfig {
     return new OnlineRetailOrderRowMapper();
   }
 
-  private ItemProcessor<? super OnlineRetailOrderDto, ? extends OnlineRetailOrder> onlineRetailOrderProcessor() {
+  @Bean
+  @StepScope
+  public ItemProcessor<? super OnlineRetailOrderDto, ? extends OnlineRetailOrder> onlineRetailOrderProcessor(
+      @Value("#{jobParameters[requestDate]}") String requestDate
+  ) {
     return new ItemProcessor<OnlineRetailOrderDto, OnlineRetailOrder>() {
       @Override
       public OnlineRetailOrder process(OnlineRetailOrderDto item) throws Exception {
@@ -99,7 +103,8 @@ public class SaveOnlineRetailOrdersBatchConfig {
                                         item.getInvoiceDate(),
                                         item.getUnitPrice(),
                                         item.getCustomerId(),
-                                        item.getCountry());
+                                        item.getCountry(),
+                                        requestDate);
       }
     };
   }

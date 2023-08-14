@@ -8,6 +8,7 @@ CREATE TABLE `online_retail_order` (
   `unit_price` float NOT NULL,
   `customer_id` bigint DEFAULT NULL,
   `country` varchar(31) DEFAULT NULL,
+  `recorded_date` varchar(31) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`)
 );
