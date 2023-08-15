@@ -2,9 +2,12 @@ package com.sipe.orderaggregationbatch.batch.config;
 
 import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderDto;
 import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrder;
+import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrderRepository;
 import com.sipe.orderaggregationbatch.batch.rowmapper.OnlineRetailOrderRowMapper;
 import com.sipe.orderaggregationbatch.batch.step.ItemFailureLoggerListener;
+import com.sipe.orderaggregationbatch.batch.step.reader.JpaOnlineRetailOrderListReader;
 import jakarta.persistence.EntityManagerFactory;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.util.Strings;
@@ -23,6 +26,7 @@ import org.springframework.batch.extensions.excel.RowMapper;
 import org.springframework.batch.extensions.excel.poi.PoiItemReader;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
@@ -42,6 +46,7 @@ public class SaveOnlineRetailOrdersBatchConfig {
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
   private final ItemFailureLoggerListener itemFailureLoggerListener;
+  private final OnlineRetailOrderRepository onlineRetailOrderRepository;
 
   @Bean
   public Job processOnlineRetailOrderFileJob() {
@@ -116,7 +121,7 @@ public class SaveOnlineRetailOrdersBatchConfig {
         order.getUnitPrice() == null;
   }
 
-  private JpaItemWriter<? super OnlineRetailOrder> onlineRetailOrderDbWriter() {
+  private JpaItemWriter<? super OnlineRetailOrder> onlineRetailOrderDbWriter() { // TODO: Batch insert
     JpaItemWriter<OnlineRetailOrder> jpaItemWriter = new JpaItemWriter<>();
     jpaItemWriter.setEntityManagerFactory(entityManagerFactory);
     jpaItemWriter.setUsePersist(true);
@@ -127,30 +132,20 @@ public class SaveOnlineRetailOrdersBatchConfig {
   @JobScope
   public Step writeToCsvStep() {
     return new StepBuilder("writeToCsvStep", jobRepository)
-        .<OnlineRetailOrder, OnlineRetailOrderDto>chunk(100, transactionManager)
-        .reader(onlineRetailOrderJpaReader(null))
-        .listener((ItemReadListener<? super OnlineRetailOrderDto>) itemFailureLoggerListener)
-        .processor(new ItemProcessor<OnlineRetailOrder, OnlineRetailOrderDto>() {
+        .<List<OnlineRetailOrder>, OnlineRetailOrderDto>chunk(100, transactionManager)
+        .reader(jpaOnlineRetailOrderListReader(null))
+        .processor(new ItemProcessor<List<OnlineRetailOrder>, OnlineRetailOrderDto>() {
           @Override
-          public OnlineRetailOrderDto process(OnlineRetailOrder item) throws Exception {
-            return new OnlineRetailOrderDto(item.getInvoiceNo(),
-                                            item.getStockCode(),
-                                            item.getDescription(),
-                                            item.getQuantity(),
-                                            item.getInvoiceDate(),
-                                            item.getUnitPrice(),
-                                            item.getCustomerId(),
-                                            item.getCountry());
+          public OnlineRetailOrderDto process(List<OnlineRetailOrder> items) throws Exception {
+            return null;
           }
         })
-        .listener((ItemProcessListener<? super OnlineRetailOrderDto, ? super OnlineRetailOrder>) itemFailureLoggerListener)
         .writer(new ItemWriter<OnlineRetailOrderDto>() {
           @Override
           public void write(Chunk<? extends OnlineRetailOrderDto> chunk) throws Exception {
             log.info(chunk.toString());
           }
         })
-        .listener((ItemWriteListener<? super OnlineRetailOrder>) itemFailureLoggerListener)
         .build();
   }
 
@@ -165,5 +160,13 @@ public class SaveOnlineRetailOrdersBatchConfig {
         .queryString("SELECT o FROM OnlineRetailOrder o")
         .pageSize(100)
         .build();
+  }
+
+  @Bean
+  @StepScope
+  public ItemReader<List<OnlineRetailOrder>> jpaOnlineRetailOrderListReader(
+      @Value("#{jobParameters[requestDate]}") String requestDate
+  ) {
+    return new JpaOnlineRetailOrderListReader(onlineRetailOrderRepository);
   }
 }
