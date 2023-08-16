@@ -26,7 +26,6 @@ import org.springframework.batch.extensions.excel.RowMapper;
 import org.springframework.batch.extensions.excel.poi.PoiItemReader;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
@@ -47,13 +46,14 @@ public class SaveOnlineRetailOrdersBatchConfig {
   private final PlatformTransactionManager transactionManager;
   private final ItemFailureLoggerListener itemFailureLoggerListener;
   private final OnlineRetailOrderRepository onlineRetailOrderRepository;
+  private final JpaOnlineRetailOrderListReader jpaOnlineRetailOrderListReader;
 
   @Bean
   public Job processOnlineRetailOrderFileJob() {
     return new JobBuilder("saveOnlineRetailOrdersJob", jobRepository)
         .incrementer(new RunIdIncrementer())
         .start(writeToDbStep())
-        .next(writeToCsvStep())
+        .next(aggregateOnlineRetailOrderByInvoiceNumbers())
         .build();
   }
 
@@ -130,13 +130,36 @@ public class SaveOnlineRetailOrdersBatchConfig {
 
   @Bean
   @JobScope
-  public Step writeToCsvStep() {
+  public Step aggregateOnlineRetailOrderByInvoiceNumbers() {
     return new StepBuilder("writeToCsvStep", jobRepository)
         .<List<OnlineRetailOrder>, OnlineRetailOrderDto>chunk(100, transactionManager)
-        .reader(jpaOnlineRetailOrderListReader(null))
+        .reader(jpaOnlineRetailOrderListReader)
+        .listener(jpaOnlineRetailOrderListReader)
         .processor(new ItemProcessor<List<OnlineRetailOrder>, OnlineRetailOrderDto>() {
           @Override
           public OnlineRetailOrderDto process(List<OnlineRetailOrder> items) throws Exception {
+            log.info("items: {}", items);
+            return null;
+          }
+        })
+        .writer(new ItemWriter<OnlineRetailOrderDto>() {
+          @Override
+          public void write(Chunk<? extends OnlineRetailOrderDto> chunk) throws Exception {
+            log.info(chunk.toString());
+          }
+        })
+        .build();
+  }
+
+  @Bean
+  @JobScope
+  public Step writeToCsvStep() {
+    return new StepBuilder("writeToCsvStep", jobRepository)
+        .<OnlineRetailOrder, OnlineRetailOrderDto>chunk(100, transactionManager)
+        .reader(onlineRetailOrderJpaReader(null))
+        .processor(new ItemProcessor<OnlineRetailOrder, OnlineRetailOrderDto>() {
+          @Override
+          public OnlineRetailOrderDto process(OnlineRetailOrder item) throws Exception {
             return null;
           }
         })
@@ -160,13 +183,5 @@ public class SaveOnlineRetailOrdersBatchConfig {
         .queryString("SELECT o FROM OnlineRetailOrder o")
         .pageSize(100)
         .build();
-  }
-
-  @Bean
-  @StepScope
-  public ItemReader<List<OnlineRetailOrder>> jpaOnlineRetailOrderListReader(
-      @Value("#{jobParameters[requestDate]}") String requestDate
-  ) {
-    return new JpaOnlineRetailOrderListReader(onlineRetailOrderRepository);
   }
 }
