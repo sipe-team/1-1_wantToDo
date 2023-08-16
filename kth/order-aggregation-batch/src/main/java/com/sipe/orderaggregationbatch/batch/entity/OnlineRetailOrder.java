@@ -3,7 +3,9 @@ package com.sipe.orderaggregationbatch.batch.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,6 +16,8 @@ import lombok.NoArgsConstructor;
 public class OnlineRetailOrder {
 
   @Id
+  private UUID id;
+
   @Column(name = "invoice_no")
   private String invoiceNo;
 
@@ -38,9 +42,18 @@ public class OnlineRetailOrder {
   @Column(name = "country")
   private String country;
 
-  public OnlineRetailOrder(
+  @Column(name = "recorded_date")
+  private String recordedDate;
+
+  @PrePersist
+  public void createId() {
+    this.id = UUID.randomUUID();
+  }
+
+  private OnlineRetailOrder(
       String invoiceNo, String stockCode, String description, Integer quantity,
-      LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country
+      LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country,
+      String recordedDate
   ) {
     this.invoiceNo = invoiceNo;
     this.stockCode = stockCode;
@@ -50,5 +63,39 @@ public class OnlineRetailOrder {
     this.unitPrice = unitPrice;
     this.customerId = customerId;
     this.country = country;
+    this.recordedDate = recordedDate;
+  }
+
+  private OnlineRetailOrder(
+      UUID id, String invoiceNo, String stockCode, String description, Integer quantity,
+      LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country,
+      String recordedDate
+  ) {
+    this.id = id;
+    this.invoiceNo = invoiceNo;
+    this.stockCode = stockCode;
+    this.description = description;
+    this.quantity = quantity;
+    this.invoiceDate = invoiceDate;
+    this.unitPrice = unitPrice;
+    this.customerId = customerId;
+    this.country = country;
+    this.recordedDate = recordedDate;
+  }
+
+  public static final OnlineRetailOrder create(
+      String invoiceNo, String stockCode, String description, Integer quantity,
+      LocalDateTime invoiceDate, Float unitPrice, Long customerId, String country,
+      String recordedDate
+  ) {
+    return new OnlineRetailOrder(invoiceNo,
+                                 stockCode,
+                                 description,
+                                 quantity,
+                                 invoiceDate,
+                                 unitPrice,
+                                 customerId,
+                                 country,
+                                 recordedDate);
   }
 }
