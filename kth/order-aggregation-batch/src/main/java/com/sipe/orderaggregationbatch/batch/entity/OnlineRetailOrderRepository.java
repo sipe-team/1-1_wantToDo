@@ -12,8 +12,23 @@ public interface OnlineRetailOrderRepository extends JpaRepository<OnlineRetailO
       +  "GROUP BY o.invoiceNo")
   List<String> findAllInvoiceNo();
 
+  @Query("SELECT o.customerId "
+      +  "FROM OnlineRetailOrder o "
+      +  "WHERE o.customerId IS NOT null "
+      +  "GROUP BY o.customerId")
+  List<Long> findAllCustomerIds();
+
   @Query("SELECT o "
       +  "FROM OnlineRetailOrder o "
       +  "WHERE o.invoiceNo = :invoiceNo")
-  List<OnlineRetailOrder> findByInvoiceNumbers(@Param("invoiceNo") String invoiceNo);
+  List<OnlineRetailOrder> findByInvoiceNo(@Param("invoiceNo") String invoiceNo);
+
+  @Query("SELECT o "
+      +  "FROM OnlineRetailOrder o "
+      +  "WHERE o.customerId = :customerId")
+  List<OnlineRetailOrder> findByCustomerId(@Param("customerId") Long customerId);
+
+  List<OnlineRetailOrder> findAllByCustomerId(Long customerId);
+
+  List<OnlineRetailOrder> findAllByCustomerIdNull();
 }
