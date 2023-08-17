@@ -1,5 +1,6 @@
 package com.sipe.orderaggregationbatch.batch.config;
 
+import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderAggregationByCustomer;
 import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderDto;
 import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrder;
 import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrderRepository;
@@ -7,7 +8,9 @@ import com.sipe.orderaggregationbatch.batch.rowmapper.OnlineRetailOrderRowMapper
 import com.sipe.orderaggregationbatch.batch.step.ItemFailureLoggerListener;
 import com.sipe.orderaggregationbatch.batch.step.reader.JpaOnlineRetailOrderListReader;
 import jakarta.persistence.EntityManagerFactory;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.util.Strings;
@@ -65,12 +68,13 @@ public class SaveOnlineRetailOrdersBatchConfig {
         .reader(onlineRetailOrderExcelReader(null))
         .listener((ItemReadListener<? super OnlineRetailOrderDto>) itemFailureLoggerListener)
         .processor(onlineRetailOrderProcessor(null))
-        .listener((ItemProcessListener<? super OnlineRetailOrderDto, ? super OnlineRetailOrder>) itemFailureLoggerListener)
+        .listener(
+            (ItemProcessListener<? super OnlineRetailOrderDto, ? super OnlineRetailOrder>) itemFailureLoggerListener)
         .writer(onlineRetailOrderDbWriter())
         .listener((ItemWriteListener<? super OnlineRetailOrder>) itemFailureLoggerListener)
         .build();
   }
-  
+
   @Bean
   @StepScope
   public PoiItemReader<? extends OnlineRetailOrderDto> onlineRetailOrderExcelReader(
@@ -130,22 +134,40 @@ public class SaveOnlineRetailOrdersBatchConfig {
 
   @Bean
   @JobScope
-  public Step aggregateOnlineRetailOrderByInvoiceNumbers() {
-    return new StepBuilder("writeToCsvStep", jobRepository)
-        .<List<OnlineRetailOrder>, OnlineRetailOrderDto>chunk(100, transactionManager)
+  public Step aggregateOnlineRetailOrderByCustomerIds() {
+    return new StepBuilder("aggregateOnlineRetailOrderByCustomerIds", jobRepository)
+        .<List<OnlineRetailOrder>, OnlineRetailOrderAggregationByCustomer>chunk(100, transactionManager)
         .reader(jpaOnlineRetailOrderListReader)
         .listener(jpaOnlineRetailOrderListReader)
-        .processor(new ItemProcessor<List<OnlineRetailOrder>, OnlineRetailOrderDto>() {
+        .processor(new ItemProcessor<List<OnlineRetailOrder>, OnlineRetailOrderAggregationByCustomer>() {
           @Override
-          public OnlineRetailOrderDto process(List<OnlineRetailOrder> items) throws Exception {
-            log.info("items: {}", items);
-            return null;
+          public OnlineRetailOrderAggregationByCustomer process(List<OnlineRetailOrder> items) throws Exception {
+            if (items.isEmpty()) {
+              return null;
+            }
+            Long customerId = items.get(0)
+                                   .getCustomerId();
+            int totalOrderCount = items.size();
+            BigDecimal totalOrderPrice = items.stream()
+                                              .map(OnlineRetailOrder::getTotalPrice)
+                                              .reduce((b1, b2) -> b1.add(b2))
+                                              .orElse(BigDecimal.ZERO);
+            List<String> atCountries = items.stream()
+                                            .map(OnlineRetailOrder::getCountry)
+                                            .distinct()
+                                            .collect(Collectors.toList());
+            return new OnlineRetailOrderAggregationByCustomer(customerId,
+                                                              totalOrderCount,
+                                                              totalOrderPrice,
+                                                              atCountries);
           }
         })
-        .writer(new ItemWriter<OnlineRetailOrderDto>() {
+        .writer(new ItemWriter<OnlineRetailOrderAggregationByCustomer>() {
           @Override
-          public void write(Chunk<? extends OnlineRetailOrderDto> chunk) throws Exception {
-            log.info(chunk.toString());
+          public void write(Chunk<? extends OnlineRetailOrderAggregationByCustomer> chunk) throws Exception {
+            for (OnlineRetailOrderAggregationByCustomer aggregation : chunk) {
+              log.info(aggregation.toString());
+            }
           }
         })
         .build();

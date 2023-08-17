@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -97,5 +98,9 @@ public class OnlineRetailOrder {
                                  customerId,
                                  country,
                                  recordedDate);
+  }
+
+  public BigDecimal getTotalPrice() {
+    return new BigDecimal(Float.toString(unitPrice * quantity));
   }
 }
