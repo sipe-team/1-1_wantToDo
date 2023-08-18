@@ -2,9 +2,11 @@ package com.sipe.orderaggregationbatch.batch.dto;
 
 import java.math.BigDecimal;
 import java.util.List;
+import lombok.Getter;
 import lombok.ToString;
 
 @ToString
+@Getter
 public class OnlineRetailOrderAggregationByCustomer {
 
   private Long customerId;

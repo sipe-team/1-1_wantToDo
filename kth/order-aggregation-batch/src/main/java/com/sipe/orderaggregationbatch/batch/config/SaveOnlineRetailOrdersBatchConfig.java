@@ -33,10 +33,15 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
@@ -162,14 +167,32 @@ public class SaveOnlineRetailOrdersBatchConfig {
                                                               atCountries);
           }
         })
-        .writer(new ItemWriter<OnlineRetailOrderAggregationByCustomer>() {
-          @Override
-          public void write(Chunk<? extends OnlineRetailOrderAggregationByCustomer> chunk) throws Exception {
-            for (OnlineRetailOrderAggregationByCustomer aggregation : chunk) {
-              log.info(aggregation.toString());
-            }
-          }
-        })
+        .writer(flatFileOnlineRetailOrderAggregationWriter(null))
+        .build();
+  }
+
+  @Bean
+  @StepScope
+  public FlatFileItemWriter<OnlineRetailOrderAggregationByCustomer> flatFileOnlineRetailOrderAggregationWriter(
+      @Value("#{jobParameters[requestDate]}") String requestDate
+  ) {
+    BeanWrapperFieldExtractor<OnlineRetailOrderAggregationByCustomer> fieldExtractor = new
+        BeanWrapperFieldExtractor<>();
+    fieldExtractor.setNames(
+        new String[]{"customerId", "totalOrderCount", "totalOrderPrice", "atCountries"});
+    fieldExtractor.afterPropertiesSet();
+
+    DelimitedLineAggregator<OnlineRetailOrderAggregationByCustomer> lineAggregator = new
+        DelimitedLineAggregator<>();
+    lineAggregator.setDelimiter(",");
+    lineAggregator.setFieldExtractor(fieldExtractor);
+
+    return new FlatFileItemWriterBuilder<OnlineRetailOrderAggregationByCustomer>()
+        .name("flatFileOnlineRetailOrderAggregationWriter")
+        .resource(new FileSystemResource(
+            new ClassPathResource("online_retail_aggregation_" + requestDate + ".csv")
+                .getPath()))
+        .lineAggregator(lineAggregator)
         .build();
   }
 
