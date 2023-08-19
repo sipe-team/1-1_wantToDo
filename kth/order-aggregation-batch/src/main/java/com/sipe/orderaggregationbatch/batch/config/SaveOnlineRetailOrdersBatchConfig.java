@@ -55,9 +55,9 @@ public class SaveOnlineRetailOrdersBatchConfig {
   @Bean
   public Job processOnlineRetailOrderFileJob() {
     return new JobBuilder("saveOnlineRetailOrdersJob", jobRepository)
-        .incrementer(new RunIdIncrementer())
+        .incrementer(new RunIdIncrementer()) // TODO: Incrementer 수정
         .start(writeToDbStep())
-        .next(aggregateOnlineRetailOrderByInvoiceNumbers())
+        .next(aggregateOnlineRetailOrderByCustomerIds())
         .build();
   }
 
