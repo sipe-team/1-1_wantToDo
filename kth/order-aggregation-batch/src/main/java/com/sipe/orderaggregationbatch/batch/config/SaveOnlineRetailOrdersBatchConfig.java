@@ -28,12 +28,8 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.extensions.excel.RowMapper;
 import org.springframework.batch.extensions.excel.poi.PoiItemReader;
-import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaItemWriter;
-import org.springframework.batch.item.database.JpaPagingItemReader;
-import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.batch.item.file.FlatFileHeaderCallback;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
@@ -192,40 +188,6 @@ public class SaveOnlineRetailOrdersBatchConfig {
         .delimited()
         .delimiter(",")
         .names(new String[]{"customerId", "totalOrderCount", "totalOrderPrice", "atCountries"})
-        .build();
-  }
-
-  @Bean
-  @JobScope
-  public Step writeToCsvStep() {
-    return new StepBuilder("writeToCsvStep", jobRepository)
-        .<OnlineRetailOrder, OnlineRetailOrderDto>chunk(100, transactionManager)
-        .reader(onlineRetailOrderJpaReader(null))
-        .processor(new ItemProcessor<OnlineRetailOrder, OnlineRetailOrderDto>() {
-          @Override
-          public OnlineRetailOrderDto process(OnlineRetailOrder item) throws Exception {
-            return null;
-          }
-        })
-        .writer(new ItemWriter<OnlineRetailOrderDto>() {
-          @Override
-          public void write(Chunk<? extends OnlineRetailOrderDto> chunk) throws Exception {
-            log.info(chunk.toString());
-          }
-        })
-        .build();
-  }
-
-  @Bean
-  @StepScope
-  public JpaPagingItemReader<? extends OnlineRetailOrder> onlineRetailOrderJpaReader(
-      @Value("#{jobParameters[requestDate]}") String requestDate
-  ) {
-    return new JpaPagingItemReaderBuilder<OnlineRetailOrder>()
-        .name("onlineRetailOrderJpaReader")
-        .entityManagerFactory(entityManagerFactory)
-        .queryString("SELECT o FROM OnlineRetailOrder o")
-        .pageSize(100)
         .build();
   }
 }
