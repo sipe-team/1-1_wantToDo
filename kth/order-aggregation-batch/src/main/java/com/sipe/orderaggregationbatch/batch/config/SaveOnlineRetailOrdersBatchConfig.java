@@ -9,6 +9,7 @@ import com.sipe.orderaggregationbatch.batch.step.ItemFailureLoggerListener;
 import com.sipe.orderaggregationbatch.batch.step.reader.JpaOnlineRetailOrderListReader;
 import jakarta.persistence.EntityManagerFactory;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -33,10 +34,9 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
+import org.springframework.batch.item.file.FlatFileHeaderCallback;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
-import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
-import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -141,32 +141,36 @@ public class SaveOnlineRetailOrdersBatchConfig {
   @JobScope
   public Step aggregateOnlineRetailOrderByCustomerIds() {
     return new StepBuilder("aggregateOnlineRetailOrderByCustomerIds", jobRepository)
-        .<List<OnlineRetailOrder>, OnlineRetailOrderAggregationByCustomer>chunk(100, transactionManager)
+        .<List<OnlineRetailOrder>, OnlineRetailOrderAggregationByCustomer>chunk(100,
+                                                                                transactionManager)
         .reader(jpaOnlineRetailOrderListReader)
         .listener(jpaOnlineRetailOrderListReader)
-        .processor(new ItemProcessor<List<OnlineRetailOrder>, OnlineRetailOrderAggregationByCustomer>() {
-          @Override
-          public OnlineRetailOrderAggregationByCustomer process(List<OnlineRetailOrder> items) throws Exception {
-            if (items.isEmpty()) {
-              return null;
-            }
-            Long customerId = items.get(0)
-                                   .getCustomerId();
-            int totalOrderCount = items.size();
-            BigDecimal totalOrderPrice = items.stream()
-                                              .map(OnlineRetailOrder::getTotalPrice)
-                                              .reduce((b1, b2) -> b1.add(b2))
-                                              .orElse(BigDecimal.ZERO);
-            List<String> atCountries = items.stream()
-                                            .map(OnlineRetailOrder::getCountry)
-                                            .distinct()
-                                            .collect(Collectors.toList());
-            return new OnlineRetailOrderAggregationByCustomer(customerId,
-                                                              totalOrderCount,
-                                                              totalOrderPrice,
-                                                              atCountries);
-          }
-        })
+        .processor(
+            new ItemProcessor<List<OnlineRetailOrder>, OnlineRetailOrderAggregationByCustomer>() {
+              @Override
+              public OnlineRetailOrderAggregationByCustomer process(List<OnlineRetailOrder> items)
+                  throws Exception {
+                if (items.isEmpty()) {
+                  return null;
+                }
+                Long customerId = items.get(0)
+                                       .getCustomerId();
+                int totalOrderCount = items.size();
+                BigDecimal totalOrderPrice = items.stream()
+                                                  .map(OnlineRetailOrder::getTotalPrice)
+                                                  .reduce((b1, b2) -> b1.add(b2))
+                                                  .orElse(BigDecimal.ZERO)
+                                                  .setScale(1, RoundingMode.CEILING);
+                List<String> atCountries = items.stream()
+                                                .map(OnlineRetailOrder::getCountry)
+                                                .distinct()
+                                                .collect(Collectors.toList());
+                return new OnlineRetailOrderAggregationByCustomer(customerId,
+                                                                  totalOrderCount,
+                                                                  totalOrderPrice,
+                                                                  atCountries);
+              }
+            })
         .writer(flatFileOnlineRetailOrderAggregationWriter(null))
         .build();
   }
@@ -176,23 +180,18 @@ public class SaveOnlineRetailOrdersBatchConfig {
   public FlatFileItemWriter<OnlineRetailOrderAggregationByCustomer> flatFileOnlineRetailOrderAggregationWriter(
       @Value("#{jobParameters[requestDate]}") String requestDate
   ) {
-    BeanWrapperFieldExtractor<OnlineRetailOrderAggregationByCustomer> fieldExtractor = new
-        BeanWrapperFieldExtractor<>();
-    fieldExtractor.setNames(
-        new String[]{"customerId", "totalOrderCount", "totalOrderPrice", "atCountries"});
-    fieldExtractor.afterPropertiesSet();
-
-    DelimitedLineAggregator<OnlineRetailOrderAggregationByCustomer> lineAggregator = new
-        DelimitedLineAggregator<>();
-    lineAggregator.setDelimiter(",");
-    lineAggregator.setFieldExtractor(fieldExtractor);
+    FlatFileHeaderCallback headerCallback = writer -> writer.write(
+        "customerId,totalOrderCount,totalOrderPrice,atCountries");
 
     return new FlatFileItemWriterBuilder<OnlineRetailOrderAggregationByCustomer>()
         .name("flatFileOnlineRetailOrderAggregationWriter")
         .resource(new FileSystemResource(
             new ClassPathResource("online_retail_aggregation_" + requestDate + ".csv")
                 .getPath()))
-        .lineAggregator(lineAggregator)
+        .headerCallback(headerCallback)
+        .delimited()
+        .delimiter(",")
+        .names(new String[]{"customerId", "totalOrderCount", "totalOrderPrice", "atCountries"})
         .build();
   }
 

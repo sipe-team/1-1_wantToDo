@@ -3,9 +3,7 @@ package com.sipe.orderaggregationbatch.batch.dto;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.Getter;
-import lombok.ToString;
 
-@ToString
 @Getter
 public class OnlineRetailOrderAggregationByCustomer {
 
@@ -15,7 +13,7 @@ public class OnlineRetailOrderAggregationByCustomer {
 
   private BigDecimal totalOrderPrice;
 
-  private List<String> atCountries;
+  private Countries atCountries;
 
   public OnlineRetailOrderAggregationByCustomer(
       Long customerId, Integer totalOrderCount, BigDecimal totalOrderPrice, List<String> atCountries
@@ -23,6 +21,6 @@ public class OnlineRetailOrderAggregationByCustomer {
     this.customerId = customerId;
     this.totalOrderCount = totalOrderCount;
     this.totalOrderPrice = totalOrderPrice;
-    this.atCountries = atCountries;
+    this.atCountries = new Countries(atCountries);
   }
 }
