@@ -3,15 +3,12 @@ package com.sipe.orderaggregationbatch.batch.config;
 import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderAggregationByCustomer;
 import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderDto;
 import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrder;
-import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrderRepository;
 import com.sipe.orderaggregationbatch.batch.rowmapper.OnlineRetailOrderRowMapper;
 import com.sipe.orderaggregationbatch.batch.step.ItemFailureLoggerListener;
+import com.sipe.orderaggregationbatch.batch.step.processor.OnlineRetailOrderAggregateProcessor;
 import com.sipe.orderaggregationbatch.batch.step.reader.JpaOnlineRetailOrderListReader;
 import jakarta.persistence.EntityManagerFactory;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.util.Strings;
@@ -49,7 +46,6 @@ public class SaveOnlineRetailOrdersBatchConfig {
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
   private final ItemFailureLoggerListener itemFailureLoggerListener;
-  private final OnlineRetailOrderRepository onlineRetailOrderRepository;
   private final JpaOnlineRetailOrderListReader jpaOnlineRetailOrderListReader;
 
   @Bean
@@ -141,32 +137,7 @@ public class SaveOnlineRetailOrdersBatchConfig {
                                                                                 transactionManager)
         .reader(jpaOnlineRetailOrderListReader)
         .listener(jpaOnlineRetailOrderListReader)
-        .processor(
-            new ItemProcessor<List<OnlineRetailOrder>, OnlineRetailOrderAggregationByCustomer>() {
-              @Override
-              public OnlineRetailOrderAggregationByCustomer process(List<OnlineRetailOrder> items)
-                  throws Exception {
-                if (items.isEmpty()) {
-                  return null;
-                }
-                Long customerId = items.get(0)
-                                       .getCustomerId();
-                int totalOrderCount = items.size();
-                BigDecimal totalOrderPrice = items.stream()
-                                                  .map(OnlineRetailOrder::getTotalPrice)
-                                                  .reduce((b1, b2) -> b1.add(b2))
-                                                  .orElse(BigDecimal.ZERO)
-                                                  .setScale(1, RoundingMode.CEILING);
-                List<String> atCountries = items.stream()
-                                                .map(OnlineRetailOrder::getCountry)
-                                                .distinct()
-                                                .collect(Collectors.toList());
-                return new OnlineRetailOrderAggregationByCustomer(customerId,
-                                                                  totalOrderCount,
-                                                                  totalOrderPrice,
-                                                                  atCountries);
-              }
-            })
+        .processor(onlineRetailOrderAggregateProcessor())
         .writer(flatFileOnlineRetailOrderAggregationWriter(null))
         .build();
   }
@@ -189,5 +160,11 @@ public class SaveOnlineRetailOrdersBatchConfig {
         .delimiter(",")
         .names(new String[]{"customerId", "totalOrderCount", "totalOrderPrice", "atCountries"})
         .build();
+  }
+
+  @Bean
+  @StepScope
+  public ItemProcessor<List<OnlineRetailOrder>, OnlineRetailOrderAggregationByCustomer> onlineRetailOrderAggregateProcessor() {
+    return new OnlineRetailOrderAggregateProcessor();
   }
 }
