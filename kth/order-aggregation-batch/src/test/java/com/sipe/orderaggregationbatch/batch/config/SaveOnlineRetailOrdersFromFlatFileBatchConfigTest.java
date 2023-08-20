@@ -18,8 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBatchTest
-@SpringBootTest(classes = {SaveOnlineRetailOrdersBatchConfig.class, BatchTestConfig.class})
-public class SaveOnlineRetailOrdersBatchConfigTest {
+@SpringBootTest(classes = {SaveOnlineRetailOrdersFromFlatFileBatchConfig.class, BatchTestConfig.class})
+public class SaveOnlineRetailOrdersFromFlatFileBatchConfigTest {
 
   @Autowired
   private OnlineRetailOrderRepository onlineRetailOrderRepository;

@@ -1,14 +1,10 @@
 package com.sipe.orderaggregationbatch.batch.config;
 
-import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderAggregationByCustomer;
 import com.sipe.orderaggregationbatch.batch.dto.OnlineRetailOrderDto;
 import com.sipe.orderaggregationbatch.batch.entity.OnlineRetailOrder;
 import com.sipe.orderaggregationbatch.batch.rowmapper.OnlineRetailOrderRowMapper;
 import com.sipe.orderaggregationbatch.batch.step.ItemFailureLoggerListener;
-import com.sipe.orderaggregationbatch.batch.step.processor.OnlineRetailOrderAggregateProcessor;
-import com.sipe.orderaggregationbatch.batch.step.reader.JpaOnlineRetailOrderListReader;
 import jakarta.persistence.EntityManagerFactory;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.util.Strings;
@@ -27,33 +23,27 @@ import org.springframework.batch.extensions.excel.RowMapper;
 import org.springframework.batch.extensions.excel.poi.PoiItemReader;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.database.JpaItemWriter;
-import org.springframework.batch.item.file.FlatFileHeaderCallback;
-import org.springframework.batch.item.file.FlatFileItemWriter;
-import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
 @Slf4j
 @RequiredArgsConstructor
-public class SaveOnlineRetailOrdersBatchConfig {
+public class SaveOnlineRetailOrdersFromFlatFileBatchConfig {
 
   private final EntityManagerFactory entityManagerFactory;
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
   private final ItemFailureLoggerListener itemFailureLoggerListener;
-  private final JpaOnlineRetailOrderListReader jpaOnlineRetailOrderListReader;
 
   @Bean
-  public Job processOnlineRetailOrderFileJob() {
-    return new JobBuilder("saveOnlineRetailOrdersJob", jobRepository)
+  public Job saveOnlineRetailOrdersFromFileJob() {
+    return new JobBuilder("saveOnlineRetailOrdersFromFileJob", jobRepository)
         .incrementer(new RunIdIncrementer()) // TODO: Incrementer 수정
         .start(writeToDbStep())
-        .next(aggregateOnlineRetailOrderByCustomerIds())
         .build();
   }
 
@@ -127,44 +117,5 @@ public class SaveOnlineRetailOrdersBatchConfig {
     jpaItemWriter.setEntityManagerFactory(entityManagerFactory);
     jpaItemWriter.setUsePersist(true);
     return jpaItemWriter;
-  }
-
-  @Bean
-  @JobScope
-  public Step aggregateOnlineRetailOrderByCustomerIds() {
-    return new StepBuilder("aggregateOnlineRetailOrderByCustomerIds", jobRepository)
-        .<List<OnlineRetailOrder>, OnlineRetailOrderAggregationByCustomer>chunk(100,
-                                                                                transactionManager)
-        .reader(jpaOnlineRetailOrderListReader)
-        .listener(jpaOnlineRetailOrderListReader)
-        .processor(onlineRetailOrderAggregateProcessor())
-        .writer(flatFileOnlineRetailOrderAggregationWriter(null))
-        .build();
-  }
-
-  @Bean
-  @StepScope
-  public FlatFileItemWriter<OnlineRetailOrderAggregationByCustomer> flatFileOnlineRetailOrderAggregationWriter(
-      @Value("#{jobParameters[requestDate]}") String requestDate
-  ) {
-    FlatFileHeaderCallback headerCallback = writer -> writer.write(
-        "customerId,totalOrderCount,totalOrderPrice,atCountries");
-
-    return new FlatFileItemWriterBuilder<OnlineRetailOrderAggregationByCustomer>()
-        .name("flatFileOnlineRetailOrderAggregationWriter")
-        .resource(new FileSystemResource(
-            new ClassPathResource("online_retail_aggregation_" + requestDate + ".csv")
-                .getPath()))
-        .headerCallback(headerCallback)
-        .delimited()
-        .delimiter(",")
-        .names(new String[]{"customerId", "totalOrderCount", "totalOrderPrice", "atCountries"})
-        .build();
-  }
-
-  @Bean
-  @StepScope
-  public ItemProcessor<List<OnlineRetailOrder>, OnlineRetailOrderAggregationByCustomer> onlineRetailOrderAggregateProcessor() {
-    return new OnlineRetailOrderAggregateProcessor();
   }
 }
