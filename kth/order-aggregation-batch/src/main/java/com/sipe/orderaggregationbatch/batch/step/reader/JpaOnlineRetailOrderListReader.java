@@ -20,22 +20,28 @@ import org.springframework.stereotype.Component;
 public class JpaOnlineRetailOrderListReader implements ItemReader<List<OnlineRetailOrder>>, StepExecutionListener {
 
   private final OnlineRetailOrderRepository onlineRetailOrderRepository;
-  private List<String> invoiceNumbers;
-  Iterator<String> iterator;
+  private List<Long> customerIds;
+  Iterator<Long> iterator;
+  private boolean isEnd;
 
   @Override
   public void beforeStep(StepExecution stepExecution) {
-    invoiceNumbers = onlineRetailOrderRepository.findAllInvoiceNo();
-    iterator = invoiceNumbers.iterator();
+    customerIds = onlineRetailOrderRepository.findAllCustomerIds();
+    iterator = customerIds.iterator();
   }
 
   @Override
   public List<OnlineRetailOrder> read()
       throws Exception, UnexpectedInputException, ParseException, NonTransientResourceException {
     if (iterator.hasNext()) {
-      return onlineRetailOrderRepository.findByInvoiceNumbers(iterator.next());
+      return onlineRetailOrderRepository.findAllByCustomerId(iterator.next());
     }
-    log.info("End JpaOnlineRetailOrderListRead..!");
-    return null;
+    if (isEnd) {
+      log.info("End JpaOnlineRetailOrderListRead..!");
+      return null;
+    }
+
+    isEnd = true;
+    return onlineRetailOrderRepository.findAllByCustomerIdNull();
   }
 }

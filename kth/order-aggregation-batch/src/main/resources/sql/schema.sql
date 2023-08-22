@@ -10,5 +10,6 @@ CREATE TABLE `online_retail_order` (
   `country` varchar(31) DEFAULT NULL,
   `recorded_date` varchar(31) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `id_UNIQUE` (`id`)
+  UNIQUE KEY `id_UNIQUE` (`id`),
+  INDEX `online_retail_order_cid` (`customer_id`)
 );
